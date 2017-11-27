@@ -103,9 +103,31 @@
         turret.add(mesh3);
         turret.position.set(0, 15, 0);
 
-        var mesh4 = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 40), new THREE.MeshLambertMaterial({
-          color: 0x468746
-        })); //底座
+		var materialArray = [
+			new THREE.MeshLambertMaterial({ // +x
+			  color: 0x206d24
+			}),
+			new THREE.MeshLambertMaterial({ // -x
+			  color: 0x206d24
+			}),
+			new THREE.MeshLambertMaterial({ // +y
+			  color: 0x47a54c
+			}),
+			new THREE.MeshLambertMaterial({ // -Y
+			  color: 0x47a54c,
+			  wireframe: true,
+			  visible: false
+			}),
+			new THREE.MeshLambertMaterial({ // +z
+			  color: 0x36aa3c
+			}),
+			new THREE.MeshLambertMaterial({ // -Z
+			  color: 0x36aa3c
+			})
+		];
+
+		var material = new THREE.MultiMaterial(materialArray);
+        var mesh4 = new THREE.Mesh(new THREE.BoxGeometry(20, 10, 40), material); //底座
         mesh4.position.set(0, 5, -10);
 
         tank = new THREE.Object3D(); //關節3，組裝完成品
@@ -150,8 +172,8 @@
 		
         // 坦克
         scene.add(buildtank());
-        //標靶
 		
+        //標靶
         target = new THREE.Mesh(new THREE.CircleGeometry(5, 30), new THREE.MeshBasicMaterial({
           color: 0xff0000,
           side: THREE.DoubleSide
