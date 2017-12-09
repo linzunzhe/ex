@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+	#info {
+		position: absolute;
+		top: 0px;
+		width: 100%;
+		padding: 10px;
+		text-align: center;
+		color: #ffff00
+	}
+	body {
+	  overflow: hidden
+	}
+</style>
+</head>
+
+<body>
+<!--  html  -->
+<div id="info"><a id="score">score: 0</a></div>
+
+<!--  script  -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+	<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+	<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+	<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+	<script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+	
+<script>
+var keyboard = new KeyboardState();
+var car = new THREE.Object3D();
+var speed=10, vel, angle=0, clock;
+var pos = new THREE.Vector3(0,0,0);
+var cylinder=[], cylindermesh=[], target, targetmesh;
+var camera, scene, cameraHUD, renderer, controls;
+var score=0;
+
+class buildtarget{
+	constructor(){
+		do{
+			this.x=Math.random() * 400 - 200;
+			this.z=Math.random() * 400 - 200;
+		}while((this.x>-50 && this.x<50)&&(this.z>-50&&this.z<50));
+		this.r=15;
+		this.h=60;
+	}
+	getx(){
+		return this.x;
+	}
+	getz(){
+		return this.z;
+	}
+	getr(){
+		return this.r;
+	}
+	geth(){
+		return this.h;
+	}
+	bump(){
+		var dx = Math.cos(angle)*(this.x - pos.x) - Math.sin(angle)*(this.z - pos.z) + pos.x;
+		var dz = Math.cos(angle)*(this.z - pos.z) + Math.sin(angle)*(this.x - pos.x) + pos.z;
+		var p1 = new THREE.Vector3(pos.x + 20, 0, pos.z + 10);
+		var p2 = new THREE.Vector3(pos.x - 20, 0, pos.z - 10);
+		var p3 = new THREE.Vector3(pos.x + 20, 0, pos.z - 10);
+		var p4 = new THREE.Vector3(pos.x - 20, 0, pos.z + 10);
+		if(p2.z > dz){	//上面
+			if(p1.x < dx){	//前面
+				if(Math.sqrt((p3.x-dx)*(p3.x-dx)+(p3.z-dz)*(p3.z-dz))<=this.r)
+					isbump2();
+			}
+			else if(p2.x > dx){	//後面
+				if(Math.sqrt((p2.x-dx)*(p2.x-dx)+(p2.z-dz)*(p2.z-dz))<=this.r)
+					isbump2();
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				if(p2.z < dz + this.r)
+					isbump2();
+			}
+		}
+		else if(p1.z < dz){	//下面
+			if(p1.x < dx){	//前面
+				if(Math.sqrt((p1.x-dx)*(p1.x-dx)+(p1.z-dz)*(p1.z-dz))<=this.r)
+					isbump2();
+			}
+			else if(p2.x > dx){	//後面
+				if(Math.sqrt((p4.x-dx)*(p4.x-dx)+(p4.z-dz)*(p4.z-dz))<=this.r)
+					isbump2();
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				if(p1.z > dz - this.r)
+					isbump2();
+			}
+		}
+		else {	//中間
+			if(p1.x < dx){	//前面
+				if(p1.x > dx - this.r)
+					isbump2();
+			}
+			else if(p2.x > dx){	//後面
+				if(p2.x < dx + this.r)
+					isbump2();
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				isbump2();
+			}
+		}
+	}
+}
+class obstacle{
+	constructor(){
+		do{
+			this.x=Math.random() * 400 - 200;
+			this.z=Math.random() * 400 - 200;
+		}while((this.x>-50 && this.x<50)&&(this.z>-50&&this.z<50));
+		this.r=Math.random()*14+5;
+		this.h=Math.random()*40+5;
+	}
+	getx(){
+		return this.x;
+	}
+	getz(){
+		return this.z;
+	}
+	getr(){
+		return this.r;
+	}
+	geth(){
+		return this.h;
+	}
+	bump(){
+		var dx = Math.cos(angle)*(this.x - pos.x) - Math.sin(angle)*(this.z - pos.z) + pos.x;
+		var dz = Math.cos(angle)*(this.z - pos.z) + Math.sin(angle)*(this.x - pos.x) + pos.z;
+		var p1 = new THREE.Vector3(pos.x + 20, 0, pos.z + 10);
+		var p2 = new THREE.Vector3(pos.x - 20, 0, pos.z - 10);
+		var p3 = new THREE.Vector3(pos.x + 20, 0, pos.z - 10);
+		var p4 = new THREE.Vector3(pos.x - 20, 0, pos.z + 10);
+		if(p2.z > dz){	//上面
+			if(p1.x < dx){	//前面
+				if(Math.sqrt((p3.x-dx)*(p3.x-dx)+(p3.z-dz)*(p3.z-dz))<=this.r)
+					isbump();
+			}
+			else if(p2.x > dx){	//後面
+				if(Math.sqrt((p2.x-dx)*(p2.x-dx)+(p2.z-dz)*(p2.z-dz))<=this.r)
+					isbump();
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				if(p2.z < dz + this.r)
+					isbump();
+			}
+		}
+		else if(p1.z < dz){	//下面
+			if(p1.x < dx){	//前面
+				if(Math.sqrt((p1.x-dx)*(p1.x-dx)+(p1.z-dz)*(p1.z-dz))<=this.r)
+					isbump();
+			}
+			else if(p2.x > dx){	//後面
+				if(Math.sqrt((p4.x-dx)*(p4.x-dx)+(p4.z-dz)*(p4.z-dz))<=this.r)
+					isbump();
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				if(p1.z > dz - this.r)
+					isbump();
+			}
+		}
+		else {	//中間
+			if(p1.x < dx){	//前面
+				if(p1.x > dx - this.r)
+					isbump();
+			}
+			else if(p2.x > dx){	//後面
+				if(p2.x < dx + this.r)
+					isbump();
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				isbump();
+			}
+		}
+	}
+}
+function isbump(){
+	pos = new THREE.Vector3(0,0,0), speed=10, angle=0;
+	score-=10;
+	$("#score").text("score: " + score);
+}
+function isbump2(){
+	score+=10;
+	$("#score").text("score: " + score);
+	scene.remove(targetmesh);
+	target = new buildtarget();
+	targetmesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( target.getr(), target.getr(), target.geth(), 32 ), new THREE.MeshLambertMaterial ({color: 0x00ffff}));
+	targetmesh.position.set(target.getx(), target.geth()/2, target.getz());
+	scene.add(targetmesh);
+}
+(function(){
+
+	Math.clamp = function(val, min, max){
+		return Math.min(Math.max(val,min),max);
+	}
+})();
+function unitize (object, targetSize) {  
+  
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+    box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+    
+	// uniform scaling according to objSize
+	var objSize = findMax(size); 
+	var scaleSet = targetSize/objSize;
+
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+  
+  return theObject;
+}
+function findMax(v){
+	if(v.x > v.y)return v.x > v.z ? v.x : v.z;
+	else return v.y > v.z ? v.y : v.z;
+}
+init();
+animate();
+
+function init() {
+	clock = new THREE.Clock();
+    scene = new THREE.Scene();
+    renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x888888);
+    document.body.appendChild(renderer.domElement);
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+	var gridXZ = new THREE.GridHelper(400, 40, 'red', 'white');
+	scene.add(gridXZ);
+  
+	var directionalLight = new THREE.AmbientLight(0xffffff);
+	directionalLight.position.set(0,1,1).normalize();
+	scene.add(directionalLight);
+  
+	var onProgress = function(xhr){
+		if(xhr.lengthComputable){
+			var percenComplete = xhr.loaded / xhr.total * 100;
+		}
+	}
+	var onError = function(xhr){};
+	
+	var mtlLoader = new THREE.MTLLoader();
+	mtlLoader.setPath('resources/');
+    mtlLoader.load('1967-shelby-ford-mustang.mtl', function(materials) {
+        materials.preload();
+        var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('resources/');
+		objLoader.load('1967-shelby-ford-mustang.obj', function(object) {
+
+			var obj =  unitize (object, 40);
+			car.add(obj);
+			obj.rotation.y = - Math.PI / 2;
+			scene.add (car);
+		}, onProgress, onError);
+	});
+	for(let i=0;i<10;i++){
+		cylinder[i] = new obstacle();
+		cylindermesh[i] = new THREE.Mesh( new THREE.CylinderBufferGeometry( cylinder[i].getr(), cylinder[i].getr(), cylinder[i].geth(), 32 ), new THREE.MeshNormalMaterial());
+		cylindermesh[i].position.set(cylinder[i].getx(), cylinder[i].geth()/2, cylinder[i].getz());
+		scene.add(cylindermesh[i]);
+	}
+	target = new buildtarget();
+	targetmesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( target.getr(), target.getr(), target.geth(), 32 ), new THREE.MeshLambertMaterial ({color: 0x00ffff}));
+	targetmesh.position.set(target.getx(), target.geth()/2, target.getz());
+	scene.add(targetmesh);
+	//initHUD();
+	cameraHUD = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+	cameraHUD.position.set (-0.1, 450, 0);
+	cameraHUD.lookAt (new THREE.Vector3());
+	window.addEventListener('resize', onWindowResize, false);
+	renderer.autoClear = false;
+}
+
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function update(){
+	speed = Math.clamp(speed, -100.0, 100.0);
+	vel = new THREE.Vector3(speed, 0, 0);
+	var dt = clock.getDelta();
+	vel.applyAxisAngle(new THREE.Vector3(0,1,0), angle);
+	pos.add(vel.clone().multiplyScalar(dt));
+	if(pos.x>200)pos.x=-200;
+	if(pos.x<-200)pos.x=200;
+	if(pos.z>200)pos.z=-200;
+	if(pos.z<-200)pos.z=200;
+}
+
+function animate() {
+    controls.update();
+    keyboard.update();
+	if (keyboard.pressed('W')) {
+		speed += 2;
+	}else if (keyboard.pressed('S')) {
+		speed -= 2;
+	}else if (keyboard.pressed('A')) {
+		angle += 0.001*speed;
+	}else if (keyboard.pressed('D')) {
+		angle -= 0.001*speed;
+	}
+	else if(keyboard.down('space')){
+		score=0;
+		$("#score").text("score: " + score);
+		for(let i=0;i<10;i++){
+			scene.remove(cylindermesh[i]);
+			cylinder[i] = new obstacle();
+			cylindermesh[i] = new THREE.Mesh( new THREE.CylinderBufferGeometry( cylinder[i].getr(), cylinder[i].getr(), cylinder[i].geth(), 32 ), new THREE.MeshNormalMaterial());
+			cylindermesh[i].position.set(cylinder[i].getx(), cylinder[i].geth()/2, cylinder[i].getz());
+			scene.add(cylindermesh[i]);
+		}
+		scene.remove(targetmesh);
+		target = new buildtarget();
+		targetmesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( target.getr(), target.getr(), target.geth(), 32 ), new THREE.MeshLambertMaterial ({color: 0x00ffff}));
+		targetmesh.position.set(target.getx(), target.geth()/2, target.getz());
+		scene.add(targetmesh);
+		pos = new THREE.Vector3(0,0,0), speed=10, angle=0;
+	}
+	update();
+	for(let i=0;i<10;i++)cylinder[i].bump();
+	target.bump();
+	car.position.copy(pos);
+	car.rotation.y = angle;
+	camera.position.copy(car.localToWorld(new THREE.Vector3(-80,50,0)));
+	camera.lookAt(car.localToWorld(new THREE.Vector3(30,20,0)));
+	render();
+	requestAnimationFrame(animate);
+	
+}
+function render(){
+	var WW = window.innerWidth;
+	var HH = window.innerHeight;
+
+	renderer.setScissorTest(true);
+
+	renderer.setViewport(0, 0, WW, HH);
+	renderer.setScissor(0, 0, WW, HH);
+	camera.aspect = WW / HH;
+	camera.updateProjectionMatrix();
+	renderer.clear();
+	renderer.render(scene, camera);
+	
+	renderer.setViewport(WW / 4 * 3, HH / 4 * 3, WW / 4, HH / 3);
+	renderer.setScissor(WW / 4 * 3, HH / 4 * 3, WW / 4, HH / 3);
+	cameraHUD.aspect = WW / HH;
+	cameraHUD.updateProjectionMatrix();
+	renderer.clear();
+	renderer.render(scene, cameraHUD);
+	
+	renderer.setScissorTest(false);
+}
+</script>
+</body>
+</html>
