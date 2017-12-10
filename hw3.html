@@ -42,6 +42,11 @@ class buildtarget{
 		do{
 			this.x=Math.random() * 400 - 200;
 			this.z=Math.random() * 400 - 200;
+			let i;
+			for(i=0;i<10;i++){
+				if(Math.sqrt((this.x-cylinder[i].getx())*(this.x-cylinder[i].getx())+(this.z-cylinder[i].getz())*(this.z-cylinder[i].getz()))<15)break;
+			}
+			if(i<10)continue;
 		}while((this.x>-50 && this.x<50)&&(this.z>-50&&this.z<50));
 		this.r=15;
 		this.h=60;
@@ -310,12 +315,13 @@ function animate() {
 		speed += 2;
 	}else if (keyboard.pressed('S')) {
 		speed -= 2;
-	}else if (keyboard.pressed('A')) {
+	}
+	if (keyboard.pressed('A')) {
 		angle += 0.001*speed;
 	}else if (keyboard.pressed('D')) {
 		angle -= 0.001*speed;
 	}
-	else if(keyboard.down('space')){
+	if(keyboard.down('space')){
 		score=0;
 		$("#score").text("score: " + score);
 		for(let i=0;i<10;i++){
