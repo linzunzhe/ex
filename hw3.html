@@ -73,77 +73,6 @@ class buildtarget{
 		if(p2.z > dz){	//上面
 			if(p1.x < dx){	//前面
 				if(Math.sqrt((p3.x-dx)*(p3.x-dx)+(p3.z-dz)*(p3.z-dz))<=this.r)
-					isbump2();
-			}
-			else if(p2.x > dx){	//後面
-				if(Math.sqrt((p2.x-dx)*(p2.x-dx)+(p2.z-dz)*(p2.z-dz))<=this.r)
-					isbump2();
-			}
-			else if(p1.x > dx && p2.x < dx){	//中間
-				if(p2.z < dz + this.r)
-					isbump2();
-			}
-		}
-		else if(p1.z < dz){	//下面
-			if(p1.x < dx){	//前面
-				if(Math.sqrt((p1.x-dx)*(p1.x-dx)+(p1.z-dz)*(p1.z-dz))<=this.r)
-					isbump2();
-			}
-			else if(p2.x > dx){	//後面
-				if(Math.sqrt((p4.x-dx)*(p4.x-dx)+(p4.z-dz)*(p4.z-dz))<=this.r)
-					isbump2();
-			}
-			else if(p1.x > dx && p2.x < dx){	//中間
-				if(p1.z > dz - this.r)
-					isbump2();
-			}
-		}
-		else {	//中間
-			if(p1.x < dx){	//前面
-				if(p1.x > dx - this.r)
-					isbump2();
-			}
-			else if(p2.x > dx){	//後面
-				if(p2.x < dx + this.r)
-					isbump2();
-			}
-			else if(p1.x > dx && p2.x < dx){	//中間
-				isbump2();
-			}
-		}
-	}
-}
-class obstacle{
-	constructor(){
-		do{
-			this.x=Math.random() * 400 - 200;
-			this.z=Math.random() * 400 - 200;
-		}while((this.x>-50 && this.x<50)&&(this.z>-50&&this.z<50));
-		this.r=Math.random()*14+5;
-		this.h=Math.random()*40+5;
-	}
-	getx(){
-		return this.x;
-	}
-	getz(){
-		return this.z;
-	}
-	getr(){
-		return this.r;
-	}
-	geth(){
-		return this.h;
-	}
-	bump(){
-		var dx = Math.cos(angle)*(this.x - pos.x) - Math.sin(angle)*(this.z - pos.z) + pos.x;
-		var dz = Math.cos(angle)*(this.z - pos.z) + Math.sin(angle)*(this.x - pos.x) + pos.z;
-		var p1 = new THREE.Vector3(pos.x + 20, 0, pos.z + 10);
-		var p2 = new THREE.Vector3(pos.x - 20, 0, pos.z - 10);
-		var p3 = new THREE.Vector3(pos.x + 20, 0, pos.z - 10);
-		var p4 = new THREE.Vector3(pos.x - 20, 0, pos.z + 10);
-		if(p2.z > dz){	//上面
-			if(p1.x < dx){	//前面
-				if(Math.sqrt((p3.x-dx)*(p3.x-dx)+(p3.z-dz)*(p3.z-dz))<=this.r)
 					isbump();
 			}
 			else if(p2.x > dx){	//後面
@@ -184,12 +113,79 @@ class obstacle{
 		}
 	}
 }
-function isbump(){
-	pos = new THREE.Vector3(0,0,0), speed=10, angle=0;
-	score-=10;
-	$("#score").text("score: " + score);
+class obstacle{
+	constructor(){
+		do{
+			this.x=Math.random() * 400 - 200;
+			this.z=Math.random() * 400 - 200;
+		}while((this.x>-50 && this.x<50)&&(this.z>-50&&this.z<50));
+		this.r=Math.random()*14+5;
+		this.h=Math.random()*40+5;
+	}
+	getx(){
+		return this.x;
+	}
+	getz(){
+		return this.z;
+	}
+	getr(){
+		return this.r;
+	}
+	geth(){
+		return this.h;
+	}
+	bump(){
+		var dx = Math.cos(angle)*(this.x - pos.x) - Math.sin(angle)*(this.z - pos.z) + pos.x;
+		var dz = Math.cos(angle)*(this.z - pos.z) + Math.sin(angle)*(this.x - pos.x) + pos.z;
+		var p1 = new THREE.Vector3(pos.x + 20, 0, pos.z + 10);
+		var p2 = new THREE.Vector3(pos.x - 20, 0, pos.z - 10);
+		var p3 = new THREE.Vector3(pos.x + 20, 0, pos.z - 10);
+		var p4 = new THREE.Vector3(pos.x - 20, 0, pos.z + 10);
+		if(p2.z > dz){	//上面
+			if(p1.x < dx){	//前面
+				if(Math.sqrt((p3.x-dx)*(p3.x-dx)+(p3.z-dz)*(p3.z-dz))<=this.r)
+					return true;
+			}
+			else if(p2.x > dx){	//後面
+				if(Math.sqrt((p2.x-dx)*(p2.x-dx)+(p2.z-dz)*(p2.z-dz))<=this.r)
+					return true;
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				if(p2.z < dz + this.r)
+					return true;
+			}
+		}
+		else if(p1.z < dz){	//下面
+			if(p1.x < dx){	//前面
+				if(Math.sqrt((p1.x-dx)*(p1.x-dx)+(p1.z-dz)*(p1.z-dz))<=this.r)
+					return true;
+			}
+			else if(p2.x > dx){	//後面
+				if(Math.sqrt((p4.x-dx)*(p4.x-dx)+(p4.z-dz)*(p4.z-dz))<=this.r)
+					return true;
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				if(p1.z > dz - this.r)
+					return true;
+			}
+		}
+		else {	//中間
+			if(p1.x < dx){	//前面
+				if(p1.x > dx - this.r)
+					return true;
+			}
+			else if(p2.x > dx){	//後面
+				if(p2.x < dx + this.r)
+					return true;
+			}
+			else if(p1.x > dx && p2.x < dx){	//中間
+				return true;
+			}
+		}
+		return false;
+	}
 }
-function isbump2(){
+function isbump(){
 	score+=10;
 	$("#score").text("score: " + score);
 	scene.remove(targetmesh);
@@ -282,7 +278,7 @@ function init() {
 	targetmesh = new THREE.Mesh( new THREE.CylinderBufferGeometry( target.getr(), target.getr(), target.geth(), 32 ), new THREE.MeshLambertMaterial ({color: 0x00ffff}));
 	targetmesh.position.set(target.getx(), target.geth()/2, target.getz());
 	scene.add(targetmesh);
-	//initHUD();
+
 	cameraHUD = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
 	cameraHUD.position.set (-0.1, 450, 0);
 	cameraHUD.lookAt (new THREE.Vector3());
@@ -300,12 +296,19 @@ function update(){
 	speed = Math.clamp(speed, -100.0, 100.0);
 	vel = new THREE.Vector3(speed, 0, 0);
 	var dt = clock.getDelta();
+	var tpos = new THREE.Vector3();
+	tpos.copy(pos);
 	vel.applyAxisAngle(new THREE.Vector3(0,1,0), angle);
 	pos.add(vel.clone().multiplyScalar(dt));
 	if(pos.x>200)pos.x=-200;
 	if(pos.x<-200)pos.x=200;
 	if(pos.z>200)pos.z=-200;
 	if(pos.z<-200)pos.z=200;
+	let i;
+	for(i=0;i<10;i++)if(cylinder[i].bump())break;
+	if(i<10){
+		pos.copy(tpos);
+	}
 }
 
 function animate() {
@@ -339,7 +342,6 @@ function animate() {
 		pos = new THREE.Vector3(0,0,0), speed=10, angle=0;
 	}
 	update();
-	for(let i=0;i<10;i++)cylinder[i].bump();
 	target.bump();
 	car.position.copy(pos);
 	car.rotation.y = angle;
