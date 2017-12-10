@@ -44,7 +44,7 @@ class buildtarget{
 			this.z=Math.random() * 400 - 200;
 			let i;
 			for(i=0;i<10;i++){
-				if(Math.sqrt((this.x-cylinder[i].getx())*(this.x-cylinder[i].getx())+(this.z-cylinder[i].getz())*(this.z-cylinder[i].getz()))<15)break;
+				if(Math.sqrt((this.x-cylinder[i].getx())*(this.x-cylinder[i].getx())+(this.z-cylinder[i].getz())*(this.z-cylinder[i].getz()))<15+cylinder[i].getr())break;
 			}
 			if(i<10)continue;
 		}while((this.x>-50 && this.x<50)&&(this.z>-50&&this.z<50));
