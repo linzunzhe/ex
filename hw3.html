@@ -254,12 +254,12 @@ function init() {
 	var onError = function(xhr){};
 	
 	var mtlLoader = new THREE.MTLLoader();
-	mtlLoader.setPath('resources/');
+	mtlLoader.setPath('resources/hw3/');
     mtlLoader.load('1967-shelby-ford-mustang.mtl', function(materials) {
         materials.preload();
         var objLoader = new THREE.OBJLoader();
 		objLoader.setMaterials(materials);
-		objLoader.setPath('resources/');
+		objLoader.setPath('resources/hw3/');
 		objLoader.load('1967-shelby-ford-mustang.obj', function(object) {
 
 			var obj =  unitize (object, 40);
