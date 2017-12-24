@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+	#info {
+		position: absolute;
+		top: 0px;
+		width: 100%;
+		padding: 10px;
+		text-align: center;
+		color: #ffff00
+	}
+	body {
+		overflow: hidden;
+	}
+</style>
+</head>
+
+<body> 
+<div id="info">test</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+<script>
+var camera, scene, renderer, car, light, controls;
+var dataPoints = [];
+var curve,i=8,j=1;
+
+init();
+animate();
+
+function init() {
+	scene = new THREE.Scene();
+
+	camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+	camera.position.set(100,100,100);
+
+	light = new THREE.AmbientLight(0xffffff);
+	scene.add(light);
+
+	var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+	scene.add(gridXZ);
+
+	renderer = new THREE.WebGLRenderer();
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor(0x888888);
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	document.body.appendChild(renderer.domElement);
+	
+	var plane = new THREE.Mesh(new THREE.PlaneBufferGeometry(100,100),
+		new THREE.MeshLambertMaterial({color: 0xffff00, side: THREE.DoubleSide}));
+	plane.position.y=50;
+	scene.add(plane);
+
+	var onProgress = function(xhr){
+		if(xhr.lengthComputable){
+			var percenComplete = xhr.loaded / xhr.total * 100;
+		}
+	}
+	var onError = function(xhr){};
+	car = new THREE.Object3D();
+	var mtlLoader = new THREE.MTLLoader();
+	mtlLoader.setPath('resources/hw3/');
+	mtlLoader.load('1967-shelby-ford-mustang.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('resources/hw3/');
+		objLoader.load('1967-shelby-ford-mustang.obj', function(object) {
+
+			var obj =  unitize (object, 30);
+			car.add(obj);
+			obj.rotation.y=-Math.PI/2;
+			car.position.z=50;
+			car.traverse (
+				function (mesh) {
+					if (mesh instanceof THREE.Mesh) {
+						mesh.castShadow = true;
+						mesh.receiveShadow = true;
+					}
+				}
+			);
+			scene.add (car);
+		}, onProgress, onError);
+	});
+	dataPoints[0]=new THREE.Vector3(0, 0, 30);
+	dataPoints[1]=new THREE.Vector3(0, 8, 8);
+	dataPoints[2]=new THREE.Vector3(0, 30, 0);
+	curve = new THREE.CatmullRomCurve3(dataPoints);
+	curve.closed = false;
+}
+
+function findMax(v){
+	if(v.x > v.y)return v.x > v.z ? v.x : v.z;
+	else return v.y > v.z ? v.y : v.z;
+}
+function unitize (object, targetSize) {
+	// find bounding box of 'object'
+	var box3 = new THREE.Box3();
+	box3.setFromObject (object);
+	var size = new THREE.Vector3();
+	size.subVectors (box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+	
+	// uniform scaling according to objSize
+	var objSize = findMax(size); 
+	var scaleSet = targetSize/objSize;
+	var theObject =  new THREE.Object3D();
+	theObject.add (object);
+	object.scale.set (scaleSet, scaleSet, scaleSet);
+	object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+
+	return theObject;
+}
+
+function Matrix4Update(newPos, newDir) {
+	var localX = newDir.clone().normalize();
+	var localY = new THREE.Vector3(0,1,0);
+	localY.sub(localY.clone().projectOnVector(localX)).normalize();
+	var localZ = new THREE.Vector3();
+	localZ.crossVectors (localX, localY);
+	car.matrix.makeBasis (localX, localY, localZ);
+	car.matrix.setPosition (newPos);
+	car.matrixAutoUpdate = false;
+}
+
+function animate() {
+	controls.update();
+
+	i+=j;
+	if(i==92)j=-1;
+	else if(i==8)j=1;
+	
+	Matrix4Update(curve.getPointAt(i/100),curve.getTangentAt(i/100));
+
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
+}
+</script>
+</body>
+</html>

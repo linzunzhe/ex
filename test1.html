@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+	#info {
+		position: absolute;
+		top: 0px;
+		width: 100%;
+		padding: 10px;
+		text-align: center;
+		color: #ffff00
+	}
+	#gui {
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		border: solid 1px green;
+		//height: 350px;
+	}
+	body {
+		overflow: hidden;
+	}
+</style>
+</head>
+<body>
+<div id="info">測試<br>
+<button id="makeCurve" style="width:20%">Make Curve</button>
+<button id="fly" style="width:20%">Fly</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
+<canvas id='mycanvas'><canvas>
+<script>
+	var scene, renderer, camera;
+	var controls, plane;
+	var theta=0, r=50, pitch=40, ymax=100;
+	var mousePoint;
+	var mouse = new THREE.Vector2();
+	var dataPoints = [];
+	var dataPointGroup = new THREE.Object3D();
+	var gcontrols;
+	var resController;
+	var typeController;
+	var mycanvas;
+
+	init();
+	animate();
+	
+	$("#makeCurve").click(function() {
+		console.log('in makeCurve');
+		makeCatmullRom();
+	});
+	$("#fly").click(function() {
+		console.log('flying');
+		flying(0);
+	});
+	
+	function findMax(v){
+		if(v.x > v.y)return v.x > v.z ? v.x : v.z;
+		else return v.y > v.z ? v.y : v.z;
+	}
+	
+	function unitize (object, targetSize) {
+		// find bounding box of 'object'
+		var box3 = new THREE.Box3();
+		box3.setFromObject (object);
+		var size = new THREE.Vector3();
+		size.subVectors (box3.max, box3.min);
+		var center = new THREE.Vector3();
+		center.addVectors(box3.max, box3.min).multiplyScalar (0.5);
+		
+		// uniform scaling according to objSize
+		var objSize = findMax(size); 
+		var scaleSet = targetSize/objSize;
+		var theObject =  new THREE.Object3D();
+		theObject.add (object);
+		object.scale.set (scaleSet, scaleSet, scaleSet);
+		object.position.set (-center.x*scaleSet, -center.y*scaleSet + size.y/2*scaleSet, -center.z*scaleSet);
+	
+		return theObject;
+	}
+	
+	function buildplane(){
+		var onProgress = function(xhr){
+			if(xhr.lengthComputable){
+				var percenComplete = xhr.loaded / xhr.total * 100;
+			}
+		}
+		var onError = function(xhr){};
+		plane = new THREE.Object3D();
+		var mtlLoader = new THREE.MTLLoader();
+		mtlLoader.setPath('resources/test1/');
+		mtlLoader.load('starscreamjet-mode.mtl', function(materials) {
+			materials.preload();
+			var objLoader = new THREE.OBJLoader();
+			objLoader.setMaterials(materials);
+			objLoader.setPath('resources/test1/');
+			objLoader.load('starscreamjet-mode.obj', function(object) {
+
+				var obj =  unitize (object, 10);
+				plane.add(obj);
+				obj.rotation.set(0, Math.PI, 0);
+				plane.traverse (
+					function (mesh) {
+						if (mesh instanceof THREE.Mesh) {
+							mesh.castShadow = true;
+							mesh.receiveShadow = true;
+						}
+					}
+				);
+				scene.add (plane);
+			}, onProgress, onError);
+		});
+	}
+
+	function init() {
+		mycanvas = document.getElementById('mycanvas');
+	
+		scene = new THREE.Scene();
+		renderer = new THREE.WebGLRenderer({antialias: true, canvas: mycanvas});
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		renderer.setClearColor(0x888888);
+		document.body.appendChild(renderer.domElement);
+
+		camera = new THREE.OrthographicCamera(-100, 100, 100, -100, -10, 1000);
+		camera.position.z = 200;
+		controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+		var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+		gridXZ.rotation.x = Math.PI / 2;
+		scene.add(gridXZ);
+
+		//let spiral = makeSpiral ();
+		//scene.add (spiral);
+
+		light = new THREE.AmbientLight(0xffffff);
+		scene.add(light);
+		buildplane();
+		scene.add(dataPointGroup);
+		
+		gcontrols = {
+			resolution: 20,
+			closed: false,
+			type: "centripetal"
+		};
+
+		var gui = new dat.GUI();
+		gui.domElement.id = 'gui';
+
+		resController = gui.add(gcontrols, 'resolution', 10, 50);
+		closedController = gui.add(gcontrols, 'closed');
+		typeController = gui.add(gcontrols, 'type', ["centripetal", "chordal", "catmullrom"]);
+		
+		window.addEventListener('resize', onWindowResize, false);
+		mycanvas.addEventListener('mousedown', onDocumentMouseDown, false);
+	}
+	
+	function makeCatmullRom() {
+		var cat;
+		// if line exists, remove it...
+		if (cat = scene.getObjectByName('catmull')) {
+			scene.remove(cat);
+			cat.children[0].geometry.dispose();
+			cat.children[1].geometry.dispose();
+		}
+
+		var curve = new THREE.CatmullRomCurve3(dataPoints);
+		curve.type = gcontrols.type;
+		curve.closed = gcontrols.closed;
+
+		var geometry = new THREE.Geometry();
+		geometry.vertices = //curve.getPoints(Math.floor(gcontrols.resolution));      // no !
+		curve.getSpacedPoints(Math.floor(gcontrols.resolution)); // yes!
+
+		var material = new THREE.LineBasicMaterial({
+			color: 0xffff00
+		});
+
+		var lineAndPt = new THREE.Object3D();
+		var line = new THREE.Line(geometry, material);
+		lineAndPt.add(line);
+		lineAndPt.name = "catmull";
+
+		var dataPointMesh = new THREE.Points(line.geometry.clone());
+		dataPointMesh.material.size = 5;
+		dataPointMesh.material.color = new THREE.Color('white');
+		lineAndPt.add(dataPointMesh);
+
+		scene.add(lineAndPt);
+	}
+
+	function onWindowResize() {
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+	}
+	
+	function makeADot(pos) {
+		var geometry = new THREE.CircleGeometry(3, 32);
+		var material = new THREE.MeshBasicMaterial({
+			color: 0xffff00
+		});
+		var circle = new THREE.Mesh(geometry, material);
+		circle.position.copy(pos);
+		return circle;
+	}
+
+	function cleanRestart() {
+		var cat;
+		if (cat = scene.getObjectByName('catmull')) {
+			scene.remove(cat);
+			cat.children[0].geometry.dispose();
+			dataPoints = [];
+			dataPointGroup.children = [];
+		}
+	}
+	
+	function onDocumentMouseDown(event) {
+		event.preventDefault();
+		// NDC: [-1,1]x[-1,1]
+		mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+		mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+		if (event.button === 2) { // right button
+			cleanRestart();
+			var pos = new THREE.Vector3(mouse.x * 100, mouse.y * 100, 0);
+			dataPoints.push(pos);
+			var pt = makeADot(pos);
+			dataPointGroup.add(pt);
+		}
+	}
+
+	function Matrix4Update(newPos, newDir) {
+		var localX = newDir.clone().normalize();
+		var localZ = new THREE.Vector3(0,0,1);
+		localZ.sub(localZ.clone().projectOnVector(localX)).normalize();
+		var localY = new THREE.Vector3();
+		localY.crossVectors (localX, localZ);
+		plane.matrix.makeBasis (localX, localZ, localY);
+		plane.matrix.setPosition (newPos);
+		plane.matrixAutoUpdate = false;
+	}
+
+	function flying(i){
+		var j = Math.floor(gcontrols.resolution)*10;
+		var curve = new THREE.CatmullRomCurve3(dataPoints);
+		curve.type = gcontrols.type;
+		curve.closed = gcontrols.closed;
+		
+		if(i<j){
+			Matrix4Update(curve.getPointAt(i/j),curve.getTangentAt(i/j));
+			setTimeout(function(){flying(i+1)},10);
+		}
+	}
+	
+	function animate() {
+		controls.update();
+		camera.position.set(0,0,200);
+		camera.lookAt(new THREE.Vector3(0,0,0));
+		
+		closedController.onChange(function() {
+			console.log(gcontrols.closed);
+			makeCatmullRom();
+		});
+		resController.onFinishChange(function() {
+			console.log(gcontrols.resolution);
+			makeCatmullRom();
+		});
+		typeController.onFinishChange(function() {
+			console.log(gcontrols.type);
+			makeCatmullRom();
+		});
+		
+		requestAnimationFrame(animate);
+		renderer.render(scene, camera);
+	}
+</script>
+</body>
+
+</html>
